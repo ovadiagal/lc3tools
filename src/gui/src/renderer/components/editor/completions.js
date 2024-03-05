@@ -33,7 +33,7 @@ const instrs = [
   "TRAP"
 ];
 const instrAliases = ["HALT", "PUTS", "GETC", "OUT", "IN", "RET"];
-const pseudoOps = ["orig", "end", "fill", "blkw", "stringz"];
+const pseudoOps = [".orig", ".end", ".fill", ".blkw", ".stringz"];
 const keywordSet = new Set(
   [...instrs, ...instrAliases, ...regNames, ...pseudoOps].map(s =>
     s.toLowerCase()
@@ -61,18 +61,18 @@ function generateCompletions(mode, doc, pos, prefix) {
 
     if (mode == "full") {
       const documentLines = doc.getAllLines();
+      console.log(documentLines)
       for (const line of documentLines) {
         const nonCommentLine = line.includes(";")
           ? line.substring(0, line.indexOf(";"))
           : line;
 
-        const matches = nonCommentLine.match(/\w[\d\w]*/g);
+        const matches = nonCommentLine; //.match(/\w?[\d\w.]*/g);
         if (matches) {
           for (const match of matches) {
             if (match === prefix) {
               continue;
             } // do not complete with what is currently being typed!
-
             const lowerMatch = match.toLowerCase();
             if (/^x[a-f\d]+$/.test(lowerMatch)) {
               continue;
@@ -86,7 +86,6 @@ function generateCompletions(mode, doc, pos, prefix) {
             if (keywordSet.has(lowerMatch)) {
               continue;
             } // existing keyword, not label
-
             labelsReferenced.add(match);
           }
         }
@@ -121,7 +120,75 @@ function generateCompletions(mode, doc, pos, prefix) {
       }))
     ];
 
-	return completions;
+    let modifiedCompletions = [];
+    for (const suggestion of completions) {
+      let modifiedSuggestion = suggestion;
+      //console.log(modifiedSuggestion);
+      if (currentLineUpToCursor.trim() == "") {
+        if (modifiedSuggestion.meta == "register") {
+          continue;
+        }
+      }
+      modifiedCompletions.push(modifiedSuggestion);
+    }
+    return modifiedCompletions;
+
+  //   let modifiedCompletions = [];
+
+  //   // Based on the format of instructions, we can suggest either registers or labels
+  //   for (const suggestion in completions) {
+  //     console.log(suggestion);
+  //     // If we are at the start of a line, don't suggest register names
+  //     if (currentLineUpToCursor.trim() == "") {
+  //       if (regNames.includes(suggestion.value.toUpperCase())) {
+  //         continue;
+  //       }
+  //     }
+
+  //     // If we are not at the start of the line, don't suggest instructions, aliases, or pseudo-ops.
+  //     if (currentLineUpToCursor.trim() != "") {
+  //       if (instrs.includes(suggestion.value.toUpperCase())) {
+  //         continue;
+  //       }
+  //       if (instrAliases.includes(suggestion.value.toUpperCase())) {
+  //         continue;
+  //       }
+  //       if (pseudoOps.includes(suggestion.value.toLowerCase())) {
+  //         continue;
+  //       }
+  //     }
+
+  //     // Make some modifications based on the context of the match.
+  //     let modifedSuggestion = suggestion;
+  //     // If the completion is an instruction (except for BR), add a space
+  //     if (instrs.has(modifedSuggestion.value.toUpperCase() && match.toUpperCase() !== "BR")) {
+  //       modifiedMatch.value += " ";
+  //     }
+
+  //     // if the suggestion is a register, add commas if it the first or second register in an instruction
+  //     if (regNames.has(modifedSuggestion.value.toUpperCase())) {
+  //       if (/^ADD$/.test(currentLineUpToCursor.trim())) {
+  //         modifiedMatch.value += ", ";
+  //       }
+  //       if (/^ADD R\d$/.test(currentLineUpToCursor.trim())) {
+  //         modifiedMatch.value += ", ";
+  //       }
+  //       const instr = currentLineUpToCursor.split(" ")[0].toUpperCase();
+  //       if (instrs.includes(instr)) {
+  //         if (instr == "ADD" || instr == "AND") {
+  //           const regCount = currentLineUpToCursor.split(",").length;
+  //           if (regCount == 1) {
+  //             modifiedMatch += ", ";
+  //           }
+  //         }
+  //       }
+  //     }
+      
+  //     modifiedCompletions.add(suggestion);
+  //   }
+
+
+	// return modifiedCompletions;
 }
 
 // modeGetter => returns current autocomplete setting
